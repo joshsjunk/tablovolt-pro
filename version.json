@@ -1,0 +1,13 @@
+{
+  "app_id": "com.tablovolt.pro",
+  "version_name": "2.5.0-LEANBACK",
+  "version_code": 25,
+  "released_at": "2026-10-29",
+  "apk_download_path": "/releases/latest/download/TabloVoltPro.apk",
+  "changelog": [
+    "Added Fire TV Downloader OTA self-update manifest support",
+    "Configured Twin Cities Shoreview RF profile (Internal Amp OFF, Inline LTE/5G Filter ON)",
+    "Added 4-Tuner Sports Quad-View active 5.1 audio routing (keys 1-4 / D-Pad Select)",
+    "Added 5TB Seagate USB 3.0 DVR ComSkip timeline markers"
+  ]
+}

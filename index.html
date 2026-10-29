@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TabloVolt Pro — 10-Foot OTA DVR &amp; Fire TV Downloader Hub</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --volt-accent: #06b6d4;
+      --volt-accent-rgb: 6, 182, 212;
+      --volt-bg: #090d16;
+      --volt-panel: #111827;
+      --volt-border: #1f2937;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--volt-bg);
+      color: #f3f4f6;
+      overflow-x: hidden;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .volt-accent-bg {
+      background-color: var(--volt-accent);
+    }
+    .volt-accent-text {
+      color: var(--volt-accent);
+    }
+    .volt-accent-border {
+      border-color: var(--volt-accent);
+    }
+    .volt-glow {
+      box-shadow: 0 0 0 2px var(--volt-accent), 0 0 20px rgba(var(--volt-accent-rgb), 0.35);
+    }
+    .dpad-focused {
+      outline: 3px solid var(--volt-accent) !important;
+      outline-offset: 2px !important;
+      box-shadow: 0 0 18px rgba(var(--volt-accent-rgb), 0.45) !important;
+      transform: scale(1.01);
+    }
+    .scanline-overlay {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.18) 50%,
+        rgba(0, 0, 0, 0.18)
+      );
+      background-size: 100% 4px;
+    }
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.92); }
+    }
+    .live-dot {
+      animation: pulse-live 1.8s infinite ease-in-out;
+    }
+    @keyframes eq-bar {
+      0%, 100% { height: 25%; }
+      50% { height: 95%; }
+    }
+    .eq-1 { animation: eq-bar 0.65s infinite ease-in-out; }
+    .eq-2 { animation: eq-bar 0.45s infinite ease-in-out 0.15s; }
+    .eq-3 { animation: eq-bar 0.75s infinite ease-in-out 0.3s; }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--volt-accent); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- TOP 10-FOOT LIVING ROOM HEADER BAR -->
+  <header class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-6 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand + Hardware Status Pill -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl volt-accent-bg flex items-center justify-center text-slate-950 font-extrabold text-lg shadow-lg">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+              TabloVolt <span class="volt-accent-text">Pro</span>
+            </h1>
+            <span id="appVersionBadge" class="text-[11px] font-mono-code uppercase px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 border border-slate-700">
+              v2.4.0-LEANBACK
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+            <span class="inline-flex items-center gap-1 text-emerald-400 font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+              <span id="headerApiHost">192.168.1.142:8885</span>
+            </span>
+            <span class="hidden sm:inline text-slate-600">•</span>
+            <span class="hidden sm:inline">Shoreview Towers (11.2 mi)</span>
+            <span class="hidden md:inline text-slate-600">•</span>
+            <span class="hidden md:inline text-amber-300/90">Amp: OFF | LTE Filter: ON</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary 10-Foot Navigation Tabs -->
+      <nav class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full" aria-label="Main Navigation">
+        <button id="tabBtn-guide" onclick="switchTab('guide')" class="dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 volt-accent-bg text-slate-950">
+          <span>📺</span> <span>Live Guide</span>
+        </button>
+        <button id="tabBtn-quad" onclick="switchTab('quad')" class="dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800">
+          <span>🎛️</span> <span>4-Tuner Quad</span>
+          <span class="px-1.5 py-0.2 bg-slate-800 text-[10px] rounded text-cyan-300 font-mono-code">4/4</span>
+        </button>
+        <button id="tabBtn-dvr" onclick="switchTab('dvr')" class="dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800">
+          <span>📼</span> <span>5TB DVR</span>
+        </button>
+        <button id="tabBtn-downloader" onclick="switchTab('downloader')" class="dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800">
+          <span>🚀</span> <span>Downloader &amp; API</span>
+          <span id="updateDotBadge" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        </button>
+      </nav>
+
+      <!-- Profile Switcher & Fire TV Remote Drawer Toggle -->
+      <div class="flex items-center gap-2">
+        <button id="openProfileBtn" onclick="openProfileModal()" class="dpad-item flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs sm:text-sm font-medium transition">
+          <span id="activeProfileAvatar" class="w-6 h-6 rounded-full volt-accent-bg text-slate-950 font-bold flex items-center justify-center text-xs">JS</span>
+          <span id="activeProfileName" class="hidden sm:inline text-slate-200">JS (Sports)</span>
+          <span class="text-slate-400 text-xs">▾</span>
+        </button>
+
+        <button id="toggleRemoteBtn" onclick="toggleRemoteDrawer()" class="dpad-item px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs sm:text-sm font-semibold text-cyan-300 flex items-center gap-1.5 transition" title="Toggle On-Screen Fire TV Remote">
+          <span>🎮</span> <span class="hidden sm:inline">Fire Remote</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-6 py-5 space-y-6">
+
+    <!-- LIVE PLAYER & COMMERCIAL SKIP STAGE (Collapsible / Active Channel Banner) -->
+    <section id="livePlayerStage" class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+        <!-- Video Canvas / Telemetry Simulation -->
+        <div class="lg:col-span-7 relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 aspect-video flex flex-col justify-between p-4 scanline-overlay">
+          <!-- Top Overlay: Channel + Signal Telemetry -->
+          <div class="flex flex-wrap items-center justify-between gap-2 z-10">
+            <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1 rounded-lg border border-slate-700/80">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500 live-dot"></span>
+              <span id="stageChannelNumber" class="font-mono-code font-bold text-cyan-400 text-sm">9.1</span>
+              <span id="stageChannelCallsign" class="font-bold text-white text-sm">KMSP-HD (FOX 9)</span>
+              <span id="stageStreamMode" class="text-[11px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-code">LIVE TUNER #1</span>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800 text-[11px] font-mono-code text-emerald-400">
+              <span id="stageSignalStats">RF 9 • -38 dBm • SNR 31 dB (100%)</span>
+            </div>
+          </div>
+
+          <!-- Center Stage Program Graphic -->
+          <div class="my-auto text-center px-4 py-4 z-10">
+            <div id="stageCategoryPill" class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 mb-2">
+              Twin Cities OTA Broadcast • 1080i MPEG-2 (18.4 Mbps)
+            </div>
+            <h2 id="stageProgramTitle" class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              FOX 9 Sports Now: Vikings Primetime Breakdown
+            </h2>
+            <p id="stageProgramSub" class="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl mx-auto">
+              Live from Eden Prairie &amp; U.S. Bank Stadium — NFC North Injury Report &amp; Matchup Analysis
+            </p>
+            <div id="comSkipAlertBanner" class="hidden mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-200 text-xs font-semibold">
+              <span>⚡ Commercial Block Detected (02:15)</span>
+              <button id="stageAutoSkipBtn" onclick="triggerComSkip()" class="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-bold hover:bg-amber-300 transition">
+                Skip Ad Block (+2:15)
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Timeline & ComSkip Yellow Segments -->
+          <div class="space-y-2 z-10 bg-slate-900/90 p-3 rounded-xl border border-slate-800/90">
+            <div class="flex items-center justify-between text-[11px] font-mono-code text-slate-400">
+              <span id="stageTimeCurrent">00:34:18</span>
+              <span class="text-amber-300 flex items-center gap-1">
+                <span class="inline-block w-2.5 h-2 rounded-sm bg-amber-400"></span> Yellow Bars = ComSkip Ready Markers
+              </span>
+              <span id="stageTimeTotal">01:00:00</span>
+            </div>
+            <!-- Interactive Timeline with ComSkip Segments -->
+            <div id="stageTimelineTrack" onclick="scrubTimeline(event)" class="relative h-2.5 bg-slate-800 rounded-full overflow-hidden cursor-pointer">
+              <div id="stageProgressBar" class="h-full volt-accent-bg transition-all duration-300" style="width: 56%;"></div>
+              <!-- Commercial Skip Yellow Marker Blocks -->
+              <div class="absolute top-0 bottom-0 bg-amber-400/85" style="left: 22%; width: 6%;" title="Commercial Block 1 (Skipped)"></div>
+              <div class="absolute top-0 bottom-0 bg-amber-400/85" style="left: 55%; width: 7%;" title="Commercial Block 2 (Click ComSkip)"></div>
+              <div class="absolute top-0 bottom-0 bg-amber-400/85" style="left: 81%; width: 6%;" title="Commercial Block 3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Player Controls & Quick Actions -->
+        <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+          <div class="bg-slate-950/80 border border-slate-800/90 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">10-Foot Transport &amp; ComSkip</span>
+              <span id="playerStateBadge" class="text-xs font-mono-code text-emerald-400">▶ PLAYING (AC3 5.1)</span>
+            </div>
+
+            <!-- Transport Buttons -->
+            <div class="grid grid-cols-4 gap-2">
+              <button id="btnReplay10" onclick="skipSeconds(-10)" class="dpad-item px-2.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 flex flex-col items-center gap-1 transition">
+                <span>⏪ -10s</span>
+                <span class="text-[10px] text-slate-400">Instant Replay</span>
+              </button>
+              <button id="btnPlayPause" onclick="togglePlayPause()" class="dpad-item px-2.5 py-2.5 rounded-xl volt-accent-bg text-slate-950 font-bold text-xs flex flex-col items-center gap-1 transition">
+                <span id="btnPlayPauseLabel">⏸ Pause</span>
+                <span class="text-[10px] opacity-80">Play/Pause</span>
+              </button>
+              <button id="btnForward30" onclick="skipSeconds(30)" class="dpad-item px-2.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 flex flex-col items-center gap-1 transition">
+                <span>⏩ +30s</span>
+                <span class="text-[10px] text-slate-400">Quick Hop</span>
+              </button>
+              <button id="btnComSkipJump" onclick="triggerComSkip()" class="dpad-item px-2.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-xs font-bold text-amber-300 flex flex-col items-center gap-1 transition">
+                <span>⚡ ComSkip</span>
+                <span class="text-[10px] text-amber-200/80">Jump Ad Block</span>
+              </button>
+            </div>
+
+            <!-- Send to Quad-View Slot or Record -->
+            <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-400">Assign to Quad:</span>
+                <button id="assignQuad1" onclick="assignStageToQuad(0)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">T1</button>
+                <button id="assignQuad2" onclick="assignStageToQuad(1)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">T2</button>
+                <button id="assignQuad3" onclick="assignStageToQuad(2)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">T3</button>
+                <button id="assignQuad4" onclick="assignStageToQuad(3)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">T4</button>
+              </div>
+              <button id="btnRecordActive" onclick="toggleRecordActiveChannel()" class="px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-semibold transition">
+                ● Record Series Pass
+              </button>
+            </div>
+          </div>
+
+          <!-- Hardware Tuner & Storage Quick Telemetry Bar -->
+          <div class="grid grid-cols-2 gap-2.5 text-xs">
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
+              <div class="text-slate-400 font-medium">4th Gen Tuners Active</div>
+              <div class="text-sm font-bold text-white mt-0.5 flex items-center justify-between">
+                <span id="activeTunerSummary">4 / 4 Locked</span>
+                <span class="text-[11px] font-mono-code text-emerald-400">No Clipping</span>
+              </div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3">
+              <div class="text-slate-400 font-medium">5TB Seagate USB Drive</div>
+              <div class="text-sm font-bold text-white mt-0.5 flex items-center justify-between">
+                <span id="storageFreeSummary">3.58 TB Free</span>
+                <span class="text-[11px] font-mono-code text-cyan-300">~780h HD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: LIVE 14-DAY OTA CHANNEL GUIDE (TWIN CITIES EPG)    -->
+    <!-- ========================================================= -->
+    <section id="tabPanel-guide" class="space-y-4">
+      <!-- Filter & Search Toolbar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <!-- Category Filter Pills -->
+        <div id="guideCategoryBar" class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          <button onclick="setGuideCategory('all')" data-cat="all" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold volt-accent-bg text-slate-950 transition whitespace-nowrap">
+            All Channels (204)
+          </button>
+          <button onclick="setGuideCategory('local')" data-cat="local" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            Twin Cities HD
+          </button>
+          <button onclick="setGuideCategory('sports')" data-cat="sports" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            🏈 Sports Live
+          </button>
+          <button onclick="setGuideCategory('news')" data-cat="news" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            📰 Local News
+          </button>
+          <button onclick="setGuideCategory('movies')" data-cat="movies" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            🎬 Movies &amp; Retro
+          </button>
+          <button onclick="setGuideCategory('kids')" data-cat="kids" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            🧸 Kids &amp; PBS
+          </button>
+          <button onclick="setGuideCategory('fast')" data-cat="fast" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">
+            ⚡ FAST Channels
+          </button>
+          <button onclick="setGuideCategory('favorites')" data-cat="favorites" class="guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-amber-300 hover:text-amber-200 transition whitespace-nowrap">
+            ★ Favorites
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative min-w-[230px]">
+          <input id="guideSearchInput" oninput="renderGuideList()" type="text" placeholder="Filter callsign, show, or channel..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400" />
+        </div>
+      </div>
+
+      <!-- EPG Grid List -->
+      <div id="epgChannelContainer" class="grid grid-cols-1 gap-2.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 2: 4-TUNER SPORTS QUAD-VIEW                           -->
+    <!-- ========================================================= -->
+    <section id="tabPanel-quad" class="hidden space-y-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <span>🎛️ 4-Tuner Simultaneous Sports Quad-View</span>
+            <span class="text-xs font-mono-code px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              All 4 Hardware Tuners Active
+            </span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Click any quadrant (or press <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-cyan-300 font-mono-code">1</kbd>–<kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-cyan-300 font-mono-code">4</kbd>) to route active 5.1 audio to that game.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnQuadPresetSports" onclick="loadQuadPreset('sports')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-300 border border-slate-700 transition">
+            🏈 Load Twin Cities Game Day (4.1 / 5.1 / 9.1 / 11.1)
+          </button>
+          <button id="btnQuadPresetNews" onclick="loadQuadPreset('news')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition">
+            📰 Local News Wall
+          </button>
+        </div>
+      </div>
+
+      <!-- 2x2 Quad Grid -->
+      <div id="quadGridContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: 5TB SEAGATE DVR LIBRARY & SERIES PASSES            -->
+    <!-- ========================================================= -->
+    <section id="tabPanel-dvr" class="hidden space-y-4">
+      <!-- Storage Telemetry Header -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-white">5TB Seagate External USB 3.0 DVR Storage</h2>
+              <span class="text-xs font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                EXT4 MOUNTED • HEALTHY
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              Connected to Tablo 4th Gen rear USB port • Auto Commercial-Skip indexing enabled on all new recordings
+            </p>
+          </div>
+          <div class="text-right font-mono-code">
+            <div class="text-sm font-bold text-white"><span id="dvrUsedTbText">1.42</span> TB / 5.00 TB Used (28.4%)</div>
+            <div class="text-xs text-cyan-400">~780 Hours of 1080i HD Remaining</div>
+          </div>
+        </div>
+        <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden mt-3 border border-slate-800">
+          <div id="dvrStorageBar" class="h-full volt-accent-bg transition-all duration-300" style="width: 28.4%;"></div>
+        </div>
+      </div>
+
+      <!-- Recordings List -->
+      <div id="dvrRecordingsList" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 4: FIRE TV, PORT 8885 API & DOWNLOADER SITE UPDATER   -->
+    <!-- ========================================================= -->
+    <section id="tabPanel-downloader" class="hidden space-y-5">
+
+      <!-- Sub-Banner: Answering "Can the app be updated with a Downloader site?" -->
+      <div class="bg-gradient-to-r from-cyan-950/70 via-slate-900 to-slate-900 border border-cyan-500/40 rounded-2xl p-4 sm:p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <div class="inline-flex items-center gap-2 text-xs font-mono-code uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              🚀 Fire TV / Android TV OTA Update Workflow
+            </div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-white">
+              Yes — Update TabloVolt Pro Directly via a Downloader Site or Shortcode
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+              Instead of connecting a PC over ADB every time you update, host your <code class="text-cyan-300 font-mono-code">TabloVoltPro.apk</code> (or this single-file HTML bundle) on <strong>GitHub Releases</strong>, <strong>GitHub Pages</strong>, or your <strong>Windows 11 Plex PC local HTTP server</strong>, and pair it with a permanent numeric shortcode on <strong>go.aftvnews.com</strong> for 1-click updates inside the Fire TV <strong>Downloader</strong> app.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button id="btnCheckOtaUpdate" onclick="runOtaUpdateCheck()" class="px-4 py-2.5 rounded-xl volt-accent-bg text-slate-950 font-bold text-xs sm:text-sm shadow-lg hover:opacity-95 transition">
+              🔄 Check Downloader Site for Update
+            </button>
+          </div>
+        </div>
+
+        <!-- Live OTA Update Simulation Status Panel -->
+        <div id="otaUpdateStatusBox" class="mt-4 bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 text-xs font-mono-code">
+              <span class="text-slate-400">Installed Build:</span>
+              <span id="otaInstalledVer" class="text-white font-bold">v2.4.0-LEANBACK</span>
+              <span class="text-slate-600">→</span>
+              <span class="text-slate-400">Remote Downloader Manifest:</span>
+              <span id="otaRemoteVer" class="text-amber-300 font-bold">v2.5.0-LEANBACK (Update Ready)</span>
+            </div>
+            <p id="otaStatusMessage" class="text-xs text-slate-400">
+              Changelog v2.5.0: Added in-app Downloader APK self-updater, Shoreview RF SNR lock gauge, and instant Quad-View audio cycling.
+            </p>
+          </div>
+          <button id="btnApplyOtaUpdate" onclick="applyOtaUpdateNow()" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shrink-0 transition">
+            ⬇️ Pull &amp; Install v2.5.0 Update
+          </button>
+        </div>
+      </div>
+
+      <!-- 2-Column Grid: Downloader Site Generator + Tablo Port 8885 Local API Tester -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        <!-- Card 1: Downloader Site & Shortcode Configurator -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>📦 Downloader Site &amp; Shortcode Builder</span>
+            </h3>
+            <span class="text-xs font-mono-code text-cyan-400">Downloader by AFTVnews</span>
+          </div>
+
+          <!-- Hosting Mode Selector -->
+          <div class="grid grid-cols-2 gap-2">
+            <button id="modeBtnGithub" onclick="setDownloaderMode('github')" class="px-3 py-2 rounded-xl text-xs font-bold border border-cyan-500/60 bg-cyan-500/15 text-cyan-300 transition">
+              ☁️ Cloud: GitHub Releases + Shortcode
+            </button>
+            <button id="modeBtnLan" onclick="setDownloaderMode('lan')" class="px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-950 text-slate-300 hover:text-white transition">
+              🏠 Home LAN: Windows 11 Plex PC Server
+            </button>
+          </div>
+
+          <!-- Dynamic Inputs for Downloader URL -->
+          <div class="space-y-3">
+            <div>
+              <label for="downloaderHostInput" class="block text-xs font-semibold text-slate-300 mb-1">
+                Downloader Target URL (Direct APK or Web App URL)
+              </label>
+              <div class="flex gap-2">
+                <input id="downloaderHostInput" oninput="updateDownloaderPreview()" type="text" value="https://github.com/jswens-mn/tablovolt-pro/releases/latest/download/TabloVoltPro.apk" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono-code text-cyan-300 focus:outline-none focus:border-cyan-400" />
+                <button id="btnCopyDownloaderUrl" onclick="copyTextFromElement('downloaderHostInput', 'Downloader URL copied!')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-700">
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                <div class="text-[11px] text-slate-400 uppercase font-semibold">AFTVnews Shortcode</div>
+                <div class="flex items-center justify-between mt-1">
+                  <input id="aftvShortcodeInput" type="text" value="849204" class="w-28 bg-transparent font-mono-code text-lg font-extrabold text-amber-300 focus:outline-none" />
+                  <button id="btnGenerateShortcode" onclick="simulateShortcodeCreation()" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-medium">
+                    Sync Code
+                  </button>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-1">
+                  Redirect: <span id="shortcodeRedirectPreview" class="font-mono-code text-slate-300">go.aftvnews.com/849204</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                <div class="text-[11px] text-slate-400 uppercase font-semibold">Windows 11 LAN Host</div>
+                <div class="font-mono-code text-xs text-emerald-400 mt-1.5 break-all" id="lanServerCmd">
+                  python -m http.server 8080
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-[11px] text-slate-400">Serve folder over Wi-Fi</span>
+                  <button id="btnCopyLanCmd" onclick="copyLiteralText('python -m http.server 8080', 'LAN HTTP Server command copied!')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium">
+                    Copy Cmd
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step-by-step Fire TV Downloader checklist -->
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs text-slate-300">
+              <div class="font-bold text-white">How In-Place Updates Work on Fire TV:</div>
+              <ol class="list-decimal list-inside space-y-1 text-slate-300">
+                <li>Keep the same <code class="text-cyan-300 font-mono-code">applicationId</code> (<code class="font-mono-code">com.tablovolt.pro</code>) and signing key when building a new APK, and increment <code class="text-cyan-300 font-mono-code">versionCode</code>.</li>
+                <li>Upload <code class="text-cyan-300 font-mono-code">TabloVoltPro.apk</code> to your GitHub Release (<code class="font-mono-code">/releases/latest/download/TabloVoltPro.apk</code>) or drop it in your Windows 11 <code class="font-mono-code">:8080</code> folder.</li>
+                <li>Open <strong>Downloader</strong> on Fire TV, enter shortcode <strong id="stepShortcodeLabel" class="text-amber-300 font-mono-code">849204</strong> (or select your saved Downloader Favorite), and click <strong>Install</strong> — Android updates the app in place while preserving all profiles &amp; settings.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Tablo Local HTTP API (Port 8885) & Shoreview RF Diagnostics -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>📡 Tablo Local API (Port 8885) &amp; ADB</span>
+            </h3>
+            <span id="apiPingBadge" class="text-xs font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              PING: 4.2 ms
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="sm:col-span-2">
+              <label for="tabloIpInput" class="block text-xs font-semibold text-slate-300 mb-1">
+                Tablo 4th Gen Local LAN Endpoint
+              </label>
+              <input id="tabloIpInput" oninput="updateTabloHost()" type="text" value="192.168.1.142:8885" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono-code text-emerald-400 focus:outline-none focus:border-cyan-400" />
+            </div>
+            <div class="flex items-end">
+              <button id="btnProbeApi" onclick="probeTabloEndpoint('/server/info')" class="w-full px-3 py-2 rounded-xl volt-accent-bg text-slate-950 font-bold text-xs hover:opacity-95 transition">
+                ⚡ Probe Port 8885
+              </button>
+            </div>
+          </div>
+
+          <!-- API Endpoint Quick Test Buttons -->
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="probeTabloEndpoint('/server/info')" class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">
+              GET /server/info
+            </button>
+            <button onclick="probeTabloEndpoint('/tuner/status')" class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">
+              GET /tuner/status
+            </button>
+            <button onclick="probeTabloEndpoint('/guide/channels')" class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">
+              GET /guide/channels
+            </button>
+            <button onclick="probeTabloEndpoint('/storage/usb')" class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-mono-code text-cyan-300">
+              GET /storage/usb
+            </button>
+          </div>
+
+          <!-- Live JSON Response Inspector -->
+          <pre id="apiJsonOutput" class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono-code text-emerald-300 overflow-x-auto max-h-44 leading-relaxed">{
+  "server_id": "SID_50879C2A4E11",
+  "name": "Tablo-4thGen-Quad",
+  "model": "TF1284B-01 (4-Tuner OTA)",
+  "local_ip": "192.168.1.142",
+  "port": 8885,
+  "rf_config": {
+    "tower_bearing": "158 deg SSE (Shoreview, MN)",
+    "internal_amplifier": false,
+    "inline_lte_5g_filter": true
+  }
+}</pre>
+
+          <!-- ADB Fallback & Leanback Wrapper Snippet -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300">ADB Over LAN Update Command (Optional)</span>
+              <button id="btnCopyAdb" onclick="copyLiteralText('adb connect 192.168.1.185:5555 && adb install -r TabloVoltPro.apk', 'ADB install command copied!')" class="text-xs px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300">
+                Copy ADB
+              </button>
+            </div>
+            <div class="font-mono-code text-[11px] text-slate-400 break-all">
+              adb connect 192.168.1.185:5555 &amp;&amp; adb install -r TabloVoltPro.apk
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- ON-SCREEN FIRE TV REMOTE EMULATOR DRAWER                  -->
+  <!-- ========================================================= -->
+  <aside id="fireRemoteDrawer" class="fixed right-4 bottom-4 z-40 w-72 bg-slate-950/95 backdrop-blur-xl border border-slate-700/90 rounded-3xl p-4 shadow-2xl transition-all duration-300 hidden">
+    <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🎮</span>
+        <div>
+          <div class="text-xs font-bold text-white">Fire TV Remote Emulator</div>
+          <div class="text-[10px] text-slate-400">D-Pad &amp; Transport Controls</div>
+        </div>
+      </div>
+      <button id="closeRemoteDrawerBtn" onclick="toggleRemoteDrawer()" class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-bold">
+        ✕
+      </button>
+    </div>
+
+    <!-- Circular D-Pad Ring -->
+    <div class="w-40 h-40 mx-auto my-2 rounded-full bg-slate-900 border-2 border-slate-700 relative flex items-center justify-center shadow-inner">
+      <button id="dpadUpBtn" onclick="handleDpad('up')" class="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-9 rounded-t-xl hover:bg-slate-800 text-slate-300 hover:text-cyan-300 font-bold text-xs">
+        ▲
+      </button>
+      <button id="dpadDownBtn" onclick="handleDpad('down')" class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-9 rounded-b-xl hover:bg-slate-800 text-slate-300 hover:text-cyan-300 font-bold text-xs">
+        ▼
+      </button>
+      <button id="dpadLeftBtn" onclick="handleDpad('left')" class="absolute left-1.5 top-1/2 -translate-y-1/2 w-9 h-10 rounded-l-xl hover:bg-slate-800 text-slate-300 hover:text-cyan-300 font-bold text-xs">
+        ◀
+      </button>
+      <button id="dpadRightBtn" onclick="handleDpad('right')" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-10 rounded-r-xl hover:bg-slate-800 text-slate-300 hover:text-cyan-300 font-bold text-xs">
+        ▶
+      </button>
+      <button id="dpadOkBtn" onclick="handleDpad('select')" class="w-16 h-16 rounded-full volt-accent-bg text-slate-950 font-extrabold text-xs shadow-md hover:opacity-95 active:scale-95 transition">
+        SELECT
+      </button>
+    </div>
+
+    <!-- Fire TV System Row -->
+    <div class="grid grid-cols-3 gap-2 mt-3">
+      <button onclick="switchTab('guide')" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200">
+        ↩ Back
+      </button>
+      <button onclick="openProfileModal()" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200">
+        🏠 Home
+      </button>
+      <button onclick="switchTab('quad')" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-cyan-300">
+        🎛️ Quad
+      </button>
+    </div>
+
+    <!-- Media Transport Row -->
+    <div class="grid grid-cols-3 gap-2 mt-2">
+      <button onclick="skipSeconds(-10)" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200">
+        ⏪ -10s
+      </button>
+      <button onclick="togglePlayPause()" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-white">
+        ⏯ Play
+      </button>
+      <button onclick="triggerComSkip()" class="py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300">
+        ⚡ Skip
+      </button>
+    </div>
+
+    <!-- Cycle Quad Audio Button -->
+    <button onclick="cycleQuadAudio()" class="w-full mt-2 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-emerald-300">
+      🔊 Cycle Active Quad-View Audio (T1–T4)
+    </button>
+  </aside>
+
+  <!-- ========================================================= -->
+  <!-- STARTUP HOUSEHOLD PROFILE SELECTOR MODAL                  -->
+  <!-- ========================================================= -->
+  <div id="profileModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-xs font-mono-code uppercase tracking-wider text-cyan-400">10-Foot Boot Selector</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">Who's Watching TabloVolt Pro?</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Each profile loads its own startup screen, channel filter preset, and accent color theme.
+          </p>
+        </div>
+        <button id="closeProfileModalBtn" onclick="closeProfileModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">
+          Resume ✕
+        </button>
+      </div>
+
+      <!-- Profile Cards Grid -->
+      <div id="profileCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+
+      <!-- Customize Active Profile Boot Settings -->
+      <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+          Customize Active Profile Boot Preferences
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label for="prefBootTab" class="block text-slate-400 mb-1">Default Startup Screen</label>
+            <select id="prefBootTab" onchange="saveProfilePreferences()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white">
+              <option value="guide">Live 14-Day EPG Guide</option>
+              <option value="quad">4-Tuner Sports Quad-View</option>
+              <option value="dvr">5TB DVR Library</option>
+              <option value="downloader">Fire TV &amp; Downloader Hub</option>
+            </select>
+          </div>
+          <div>
+            <label for="prefChannelFilter" class="block text-slate-400 mb-1">Default Channel Filter</label>
+            <select id="prefChannelFilter" onchange="saveProfilePreferences()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white">
+              <option value="all">All 204 Channels</option>
+              <option value="local">Twin Cities Major Networks</option>
+              <option value="sports">Sports Live Feeds</option>
+              <option value="kids">Kids &amp; Twin Cities PBS</option>
+              <option value="favorites">Starred Favorites Only</option>
+            </select>
+          </div>
+          <div>
+            <label for="prefAccentColor" class="block text-slate-400 mb-1">10-Foot Theme Accent</label>
+            <select id="prefAccentColor" onchange="saveProfilePreferences()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-white">
+              <option value="#06b6d4">Volt Cyan (#06b6d4)</option>
+              <option value="#10b981">Emerald Turf (#10b981)</option>
+              <option value="#8b5cf6">Vikings Violet (#8b5cf6)</option>
+              <option value="#f59e0b">Amber Gold (#f59e0b)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    // =========================================================================
+    // STATE & DATA: TWIN CITIES SHOREVIEW OTA CHANNELS, PROFILES, QUAD & DVR
+    // =========================================================================
+    const PROFILES = [
+      {
+        id: 'js',
+        initials: 'JS',
+        name: 'JS (Sports & Local HD)',
+        bootTab: 'quad',
+        defaultCat: 'sports',
+        accent: '#06b6d4',
+        rgb: '6, 182, 212',
+        subtitle: 'Boots to 4-Tuner Quad • Twin Cities HD & NFL'
+      },
+      {
+        id: 'family',
+        initials: 'FM',
+        name: 'Family Room (All 204)',
+        bootTab: 'guide',
+        defaultCat: 'all',
+        accent: '#10b981',
+        rgb: '16, 185, 129',
+        subtitle: 'Boots to Full 14-Day Guide • All Shoreview OTA + FAST'
+      },
+      {
+        id: 'nikki',
+        initials: 'NK',
+        name: 'Nikki (Prime Time)',
+        bootTab: 'guide',
+        defaultCat: 'local',
+        accent: '#8b5cf6',
+        rgb: '139, 92, 246',
+        subtitle: 'Boots to Twin Cities Major Networks • Series Passes'
+      },
+      {
+        id: 'everly',
+        initials: 'EV',
+        name: 'Everly (Kids & PBS)',
+        bootTab: 'dvr',
+        defaultCat: 'kids',
+        accent: '#f59e0b',
+        rgb: '245, 158, 11',
+        subtitle: 'Boots to 5TB DVR & TPT Kids 2.4 Filter'
+      }
+    ];
+
+    const CHANNELS = [
+      {
+        num: '2.1',
+        callsign: 'TPT-HD (PBS)',
+        network: 'PBS',
+        cat: ['local', 'kids'],
+        rf: 'RF 34',
+        dbm: '-38 dBm',
+        snr: '32 dB (100%)',
+        program: 'Almanac: Twin Cities Week in Review',
+        subtitle: 'Minnesota legislative updates, local history & regional arts across the Twin Cities.',
+        progress: 48,
+        favorite: true,
+        comSkipReady: false,
+        seriesRecording: false
+      },
+      {
+        num: '2.4',
+        callsign: 'TPT-KIDS',
+        network: 'PBS Kids',
+        cat: ['kids'],
+        rf: 'RF 34',
+        dbm: '-38 dBm',
+        snr: '32 dB (100%)',
+        program: 'Wild Kratts: Creature Power in the North Woods',
+        subtitle: '24/7 educational kids programming from Twin Cities PBS.',
+        progress: 65,
+        favorite: true,
+        comSkipReady: false,
+        seriesRecording: true
+      },
+      {
+        num: '4.1',
+        callsign: 'WCCO-TV (CBS)',
+        network: 'CBS',
+        cat: ['local', 'sports', 'news'],
+        rf: 'RF 32',
+        dbm: '-36 dBm',
+        snr: '34 dB (100%)',
+        program: 'NFL on CBS: NFC North Matchup Center',
+        subtitle: 'Live coverage from downtown Minneapolis & NFC North division standings.',
+        progress: 72,
+        favorite: true,
+        comSkipReady: true,
+        seriesRecording: true
+      },
+      {
+        num: '5.1',
+        callsign: 'KSTP-TV (ABC)',
+        network: 'ABC',
+        cat: ['local', 'sports', 'news'],
+        rf: 'RF 35',
+        dbm: '-37 dBm',
+        snr: '33 dB (100%)',
+        program: '5 Eyewitness Sports: College Hockey & Big Ten Primetime',
+        subtitle: 'Live Hubbard Broadcasting HD feed from the Shoreview tower array.',
+        progress: 39,
+        favorite: true,
+        comSkipReady: true,
+        seriesRecording: false
+      },
+      {
+        num: '5.2',
+        callsign: 'KSTC-TV (45TV)',
+        network: '45TV Independent',
+        cat: ['local', 'sports'],
+        rf: 'RF 30',
+        dbm: '-37 dBm',
+        snr: '32 dB (100%)',
+        program: 'Prep45: Minnesota High School Football Showcase',
+        subtitle: 'Twin Cities Metro Section Finals live broadcast.',
+        progress: 51,
+        favorite: false,
+        comSkipReady: true,
+        seriesRecording: false
+      },
+      {
+        num: '9.1',
+        callsign: 'KMSP-HD (FOX 9)',
+        network: 'FOX',
+        cat: ['local', 'sports', 'news'],
+        rf: 'RF 9 (VHF-Hi)',
+        dbm: '-38 dBm',
+        snr: '31 dB (100%)',
+        program: 'FOX 9 Sports Now: Vikings Primetime Breakdown',
+        subtitle: 'Live from Eden Prairie & U.S. Bank Stadium — NFC North Injury Report & Matchup Analysis.',
+        progress: 56,
+        favorite: true,
+        comSkipReady: true,
+        seriesRecording: true
+      },
+      {
+        num: '9.2',
+        callsign: 'WFTC (FOX 9+)',
+        network: 'FOX 9+',
+        cat: ['local', 'sports', 'movies'],
+        rf: 'RF 9',
+        dbm: '-38 dBm',
+        snr: '31 dB (100%)',
+        program: 'Twin Cities Live Sports Encore & Classic Cinema',
+        subtitle: 'Regional sports overflow and prime-time feature film.',
+        progress: 29,
+        favorite: false,
+        comSkipReady: true,
+        seriesRecording: false
+      },
+      {
+        num: '11.1',
+        callsign: 'KARE-TV (NBC)',
+        network: 'NBC',
+        cat: ['local', 'sports', 'news'],
+        rf: 'RF 31',
+        dbm: '-36 dBm',
+        snr: '34 dB (100%)',
+        program: 'Sunday Night Football Pre-Game & KARE 11 Sports',
+        subtitle: '1080i high-bitrate broadcast from Shoreview tower (11.4 mi).',
+        progress: 62,
+        favorite: true,
+        comSkipReady: true,
+        seriesRecording: true
+      },
+      {
+        num: '23.1',
+        callsign: 'WUCW (The CW)',
+        network: 'CW',
+        cat: ['local', 'sports', 'movies'],
+        rf: 'RF 22',
+        dbm: '-40 dBm',
+        snr: '30 dB (100%)',
+        program: 'ACC / Pac-12 Coast-to-Coast Football on The CW',
+        subtitle: 'Live college sports and prime-time programming.',
+        progress: 44,
+        favorite: false,
+        comSkipReady: true,
+        seriesRecording: false
+      },
+      {
+        num: '41.1',
+        callsign: 'KPXM-TV (ION)',
+        network: 'ION',
+        cat: ['movies'],
+        rf: 'RF 16',
+        dbm: '-41 dBm',
+        snr: '29 dB (98%)',
+        program: 'WNBA & NWSL Primetime / Law & Order Marathon',
+        subtitle: 'OTA subchannel multicast from Shoreview.',
+        progress: 80,
+        favorite: false,
+        comSkipReady: true,
+        seriesRecording: false
+      },
+      {
+        num: 'FAST-101',
+        callsign: 'NFL Channel (Tablo FAST)',
+        network: 'FAST Stream',
+        cat: ['sports', 'fast'],
+        rf: 'LAN HLS',
+        dbm: '100 Mbps',
+        snr: 'Direct IP',
+        program: 'NFL Mic’d Up & Classic Vikings Playoff Replays',
+        subtitle: 'Integrated free ad-supported streaming channel merged into your 14-day guide.',
+        progress: 35,
+        favorite: true,
+        comSkipReady: false,
+        seriesRecording: false
+      },
+      {
+        num: 'FAST-140',
+        callsign: 'Retro Crush / Classic TV',
+        network: 'FAST Stream',
+        cat: ['movies', 'fast'],
+        rf: 'LAN HLS',
+        dbm: '100 Mbps',
+        snr: 'Direct IP',
+        program: 'The Drew Carey Show & 90s Sitcom Block',
+        subtitle: 'Free ad-supported classic comedy stream.',
+        progress: 19,
+        favorite: true,
+        comSkipReady: false,
+        seriesRecording: false
+      }
+    ];
+
+    const DVR_RECORDINGS = [
+      {
+        id: 'rec-1',
+        title: 'Vikings GameDay Live — Week 8 Full Broadcast',
+        channel: '9.1 KMSP-HD (FOX 9)',
+        date: 'Recorded Sun • 3h 18m • 14.2 GB (MPEG-2)',
+        comSkipBlocks: 9,
+        savedMinutes: 24,
+        protected: true
+      },
+      {
+        id: 'rec-2',
+        title: 'WCCO 4 News at 10 & Sports Wrap',
+        channel: '4.1 WCCO-TV (CBS)',
+        date: 'Recorded Yesterday • 35m • 2.4 GB',
+        comSkipBlocks: 3,
+        savedMinutes: 8,
+        protected: false
+      },
+      {
+        id: 'rec-3',
+        title: 'Sunday Night Football: Green Bay vs. Minnesota',
+        channel: '11.1 KARE-TV (NBC)',
+        date: 'Recorded Oct 25 • 3h 30m • 15.6 GB',
+        comSkipBlocks: 11,
+        savedMinutes: 29,
+        protected: true
+      },
+      {
+        id: 'rec-4',
+        title: 'Wild Kratts: Back in Creature Time (2 Episodes)',
+        channel: '2.4 TPT-KIDS (PBS)',
+        date: 'Recorded Oct 27 • 1h 00m • 3.1 GB',
+        comSkipBlocks: 0,
+        savedMinutes: 0,
+        protected: false
+      }
+    ];
+
+    let activeProfileId = 'js';
+    let currentTab = 'guide';
+    let currentGuideCategory = 'all';
+    let activeStageChannelNum = '9.1';
+    let isPlaying = true;
+    let stageSeconds = 2058; // 00:34:18
+    let quadSlots = ['9.1', '4.1', '11.1', '5.1'];
+    let activeQuadAudioIndex = 0;
+    let dpadFocusIndex = 0;
+
+    // =========================================================================
+    // STORAGE SAFE HELPERS
+    // =========================================================================
+    function saveStateToStorage() {
+      try {
+        localStorage.setItem('tablovolt_pro_state', JSON.stringify({
+          activeProfileId,
+          quadSlots,
+          activeQuadAudioIndex
+        }));
+      } catch (e) {
+        // Ignore storage errors in sandboxed iframe
+      }
+    }
+
+    function loadStateFromStorage() {
+      try {
+        const raw = localStorage.getItem('tablovolt_pro_state');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.activeProfileId) activeProfileId = parsed.activeProfileId;
+          if (Array.isArray(parsed.quadSlots) && parsed.quadSlots.length === 4) {
+            quadSlots = parsed.quadSlots;
+          }
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    // =========================================================================
+    // TOAST NOTIFICATION HELPER
+    // =========================================================================
+    function showToast(message, badgeText = 'TABLOVOLT') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-900/95 border border-cyan-500/50 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-medium transition-all duration-300';
+      toast.innerHTML = `<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono-code text-[10px] font-bold">${badgeText}</span><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 2900);
+    }
+
+    // =========================================================================
+    // PROFILE MODAL & THEME ACCENT APPLICATION
+    // =========================================================================
+    function renderProfileModalCards() {
+      const grid = document.getElementById('profileCardsGrid');
+      if (!grid) return;
+      grid.innerHTML = PROFILES.map(p => {
+        const isCurrent = p.id === activeProfileId;
+        return `
+          <button onclick="selectProfile('${p.id}')" class="text-left p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+            isCurrent
+              ? 'bg-slate-800/90 border-cyan-400 shadow-lg'
+              : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+          }">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-950 font-extrabold text-base shrink-0" style="background-color: ${p.accent};">
+              ${p.initials}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-white text-sm truncate">${p.name}</span>
+                ${isCurrent ? '<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">ACTIVE</span>' : ''}
+              </div>
+              <p class="text-xs text-slate-400 mt-1 line-clamp-2">${p.subtitle}</p>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const activeProf = PROFILES.find(p => p.id === activeProfileId) || PROFILES[0];
+      const bootSel = document.getElementById('prefBootTab');
+      const catSel = document.getElementById('prefChannelFilter');
+      const colSel = document.getElementById('prefAccentColor');
+      if (bootSel) bootSel.value = activeProf.bootTab;
+      if (catSel) catSel.value = activeProf.defaultCat;
+      if (colSel) colSel.value = activeProf.accent;
+    }
+
+    function applyThemeAccent(hexColor) {
+      const rgbMap = {
+        '#06b6d4': '6, 182, 212',
+        '#10b981': '16, 185, 129',
+        '#8b5cf6': '139, 92, 246',
+        '#f59e0b': '245, 158, 11'
+      };
+      document.documentElement.style.setProperty('--volt-accent', hexColor);
+      document.documentElement.style.setProperty('--volt-accent-rgb', rgbMap[hexColor] || '6, 182, 212');
+    }
+
+    function selectProfile(profileId) {
+      const prof = PROFILES.find(p => p.id === profileId) || PROFILES[0];
+      activeProfileId = prof.id;
+      applyThemeAccent(prof.accent);
+
+      const avatar = document.getElementById('activeProfileAvatar');
+      const nameEl = document.getElementById('activeProfileName');
+      if (avatar) avatar.textContent = prof.initials;
+      if (nameEl) nameEl.textContent = prof.name.split(' ')[0] + ' (' + prof.bootTab.toUpperCase() + ')';
+
+      setGuideCategory(prof.defaultCat);
+      switchTab(prof.bootTab);
+      renderProfileModalCards();
+      closeProfileModal();
+      saveStateToStorage();
+      showToast(`Loaded ${prof.name} • Startup: ${prof.bootTab.toUpperCase()}`, 'PROFILE');
+    }
+
+    function saveProfilePreferences() {
+      const prof = PROFILES.find(p => p.id === activeProfileId);
+      if (!prof) return;
+      const bootSel = document.getElementById('prefBootTab');
+      const catSel = document.getElementById('prefChannelFilter');
+      const colSel = document.getElementById('prefAccentColor');
+      if (bootSel) prof.bootTab = bootSel.value;
+      if (catSel) prof.defaultCat = catSel.value;
+      if (colSel) {
+        prof.accent = colSel.value;
+        applyThemeAccent(prof.accent);
+      }
+      renderProfileModalCards();
+      showToast(`Saved startup preferences for ${prof.name}`, 'PREFS');
+    }
+
+    function openProfileModal() {
+      renderProfileModalCards();
+      const modal = document.getElementById('profileModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // TAB NAVIGATION
+    // =========================================================================
+    function switchTab(tabId) {
+      currentTab = tabId;
+      const tabs = ['guide', 'quad', 'dvr', 'downloader'];
+      tabs.forEach(t => {
+        const panel = document.getElementById(`tabPanel-${t}`);
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (panel) {
+          if (t === tabId) panel.classList.remove('hidden');
+          else panel.classList.add('hidden');
+        }
+        if (btn) {
+          if (t === tabId) {
+            btn.className = 'dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 volt-accent-bg text-slate-950';
+          } else {
+            btn.className = 'dpad-item px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800';
+          }
+        }
+      });
+
+      if (tabId === 'quad') renderQuadView();
+      if (tabId === 'dvr') renderDvrList();
+    }
+
+    // =========================================================================
+    // LIVE EPG GUIDE RENDERING & INTERACTIONS
+    // =========================================================================
+    function setGuideCategory(cat) {
+      currentGuideCategory = cat;
+      document.querySelectorAll('.guide-cat-btn').forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.className = 'guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold volt-accent-bg text-slate-950 transition whitespace-nowrap';
+        } else {
+          btn.className = 'guide-cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap';
+        }
+      });
+      renderGuideList();
+    }
+
+    function renderGuideList() {
+      const container = document.getElementById('epgChannelContainer');
+      const searchInput = document.getElementById('guideSearchInput');
+      if (!container) return;
+      const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+      const filtered = CHANNELS.filter(ch => {
+        if (currentGuideCategory === 'favorites' && !ch.favorite) return false;
+        if (currentGuideCategory !== 'all' && currentGuideCategory !== 'favorites') {
+          if (!ch.cat.includes(currentGuideCategory)) return false;
+        }
+        if (query) {
+          const hay = `${ch.num} ${ch.callsign} ${ch.network} ${ch.program} ${ch.subtitle}`.toLowerCase();
+          return hay.includes(query);
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
+            No OTA or FAST channels matched your filter. Try selecting "All Channels (204)".
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(ch => {
+        const isCurrentStage = ch.num === activeStageChannelNum;
+        return `
+          <div class="dpad-item bg-slate-900/90 hover:bg-slate-900 border ${isCurrentStage ? 'border-cyan-400/80' : 'border-slate-800'} rounded-2xl p-3.5 sm:p-4 transition flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+            <!-- Left: Channel Callsign & RF Signal -->
+            <div class="flex items-center gap-3.5 min-w-[210px]">
+              <button onclick="toggleFavoriteChannel('${ch.num}')" class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-sm ${ch.favorite ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'}" title="Toggle Favorite">
+                ★
+              </button>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono-code font-extrabold text-sm sm:text-base volt-accent-text">${ch.num}</span>
+                  <span class="font-bold text-white text-sm sm:text-base">${ch.callsign}</span>
+                </div>
+                <div class="text-[11px] font-mono-code text-emerald-400 flex items-center gap-2 mt-0.5">
+                  <span>${ch.rf}</span>
+                  <span>•</span>
+                  <span>${ch.dbm}</span>
+                  <span>•</span>
+                  <span>${ch.snr}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle: Live Program & Progress Bar -->
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-white text-sm sm:text-base truncate">${ch.program}</span>
+                ${ch.comSkipReady ? '<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">⚡ ComSkip</span>' : ''}
+                ${ch.seriesRecording ? '<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">● REC PASS</span>' : ''}
+              </div>
+              <p class="text-xs text-slate-400 truncate mt-0.5">${ch.subtitle}</p>
+              <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden mt-2">
+                <div class="h-full volt-accent-bg" style="width: ${ch.progress}%;"></div>
+              </div>
+            </div>
+
+            <!-- Right: 10-Foot Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              <button onclick="tuneStageChannel('${ch.num}')" class="px-3.5 py-2 rounded-xl volt-accent-bg text-slate-950 font-bold text-xs hover:opacity-95 transition">
+                ▶ Watch Live
+              </button>
+              <button onclick="sendChannelToNextQuad('${ch.num}')" class="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-cyan-300 transition">
+                + Quad-View
+              </button>
+              <button onclick="toggleChannelSeriesPass('${ch.num}')" class="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-semibold ${ch.seriesRecording ? 'text-red-400 border-red-500/50' : 'text-slate-300'} transition">
+                ${ch.seriesRecording ? '● Pass Active' : '○ Series Pass'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function tuneStageChannel(channelNum, streamLabel = 'LIVE TUNER #1') {
+      const ch = CHANNELS.find(c => c.num === channelNum) || CHANNELS[0];
+      activeStageChannelNum = ch.num;
+      document.getElementById('stageChannelNumber').textContent = ch.num;
+      document.getElementById('stageChannelCallsign').textContent = ch.callsign;
+      document.getElementById('stageStreamMode').textContent = streamLabel;
+      document.getElementById('stageSignalStats').textContent = `${ch.rf} • ${ch.dbm} • SNR ${ch.snr}`;
+      document.getElementById('stageProgramTitle').textContent = ch.program;
+      document.getElementById('stageProgramSub').textContent = ch.subtitle;
+      document.getElementById('stageProgressBar').style.width = `${ch.progress}%`;
+
+      const comBanner = document.getElementById('comSkipAlertBanner');
+      if (comBanner) {
+        if (ch.comSkipReady) comBanner.classList.remove('hidden');
+        else comBanner.classList.add('hidden');
+      }
+
+      renderGuideList();
+      showToast(`Tuned ${ch.num} ${ch.callsign} (${ch.rf})`, 'TUNER');
+    }
+
+    function toggleFavoriteChannel(channelNum) {
+      const ch = CHANNELS.find(c => c.num === channelNum);
+      if (!ch) return;
+      ch.favorite = !ch.favorite;
+      renderGuideList();
+      showToast(`${ch.callsign} ${ch.favorite ? 'added to' : 'removed from'} ★ Favorites`, 'FAV');
+    }
+
+    function toggleChannelSeriesPass(channelNum) {
+      const ch = CHANNELS.find(c => c.num === channelNum);
+      if (!ch) return;
+      ch.seriesRecording = !ch.seriesRecording;
+      renderGuideList();
+      showToast(
+        ch.seriesRecording
+          ? `Scheduled Series Pass for "${ch.program}" on 5TB Seagate Drive`
+          : `Canceled Series Pass for "${ch.program}"`,
+        'DVR PASS'
+      );
+    }
+
+    function toggleRecordActiveChannel() {
+      toggleChannelSeriesPass(activeStageChannelNum);
+    }
+
+    // =========================================================================
+    // PLAYER TRANSPORT & COMMERCIAL SKIP
+    // =========================================================================
+    function formatSeconds(sec) {
+      const clamped = Math.max(0, Math.min(3600, sec));
+      const hrs = String(Math.floor(clamped / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((clamped % 3600) / 60)).padStart(2, '0');
+      const s = String(clamped % 60).padStart(2, '0');
+      return `${hrs}:${mins}:${s}`;
+    }
+
+    function updateStageClockDisplay() {
+      const timeEl = document.getElementById('stageTimeCurrent');
+      const progEl = document.getElementById('stageProgressBar');
+      if (timeEl) timeEl.textContent = formatSeconds(stageSeconds);
+      if (progEl) progEl.style.width = `${Math.min(100, Math.round((stageSeconds / 3600) * 100))}%`;
+    }
+
+    function skipSeconds(delta) {
+      stageSeconds = Math.max(0, Math.min(3600, stageSeconds + delta));
+      updateStageClockDisplay();
+      showToast(`${delta > 0 ? 'Skipped forward +' + delta + 's' : 'Rewound ' + delta + 's'}`, 'PLAYER');
+    }
+
+    function triggerComSkip() {
+      stageSeconds = Math.min(3600, stageSeconds + 135); // +2m 15s commercial block skip
+      updateStageClockDisplay();
+      const comBanner = document.getElementById('comSkipAlertBanner');
+      if (comBanner) comBanner.classList.add('hidden');
+      showToast('⚡ Auto-Skipped 2m 15s Commercial Block! Resumed program.', 'COMSKIP');
+    }
+
+    function togglePlayPause() {
+      isPlaying = !isPlaying;
+      const badge = document.getElementById('playerStateBadge');
+      const label = document.getElementById('btnPlayPauseLabel');
+      if (badge) {
+        badge.textContent = isPlaying ? '▶ PLAYING (AC3 5.1)' : '⏸ PAUSED (TIMESHIFT BUFFER)';
+        badge.className = isPlaying ? 'text-xs font-mono-code text-emerald-400' : 'text-xs font-mono-code text-amber-300';
+      }
+      if (label) label.textContent = isPlaying ? '⏸ Pause' : '▶ Resume';
+      showToast(isPlaying ? 'Resumed live playback' : 'Paused to 5TB USB timeshift buffer', 'PLAYER');
+    }
+
+    function scrubTimeline(event) {
+      const track = document.getElementById('stageTimelineTrack');
+      if (!track) return;
+      const rect = track.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      stageSeconds = Math.round(pct * 3600);
+      updateStageClockDisplay();
+    }
+
+    // =========================================================================
+    // 4-TUNER SPORTS QUAD-VIEW
+    // =========================================================================
+    function renderQuadView() {
+      const grid = document.getElementById('quadGridContainer');
+      if (!grid) return;
+
+      grid.innerHTML = quadSlots.map((chNum, idx) => {
+        const ch = CHANNELS.find(c => c.num === chNum) || CHANNELS[idx % CHANNELS.length];
+        const isAudioActive = idx === activeQuadAudioIndex;
+        const optionsHtml = CHANNELS.map(opt =>
+          `<option value="${opt.num}" ${opt.num === ch.num ? 'selected' : ''}>${opt.num} ${opt.callsign}</option>`
+        ).join('');
+
+        return `
+          <div onclick="setQuadAudio(${idx})" class="cursor-pointer rounded-2xl bg-slate-900/95 border-2 transition-all p-4 flex flex-col justify-between aspect-video scanline-overlay ${
+            isAudioActive ? 'volt-glow volt-accent-border' : 'border-slate-800 hover:border-slate-700'
+          }">
+            <!-- Top Row: Tuner Badge & Channel Selector -->
+            <div class="flex flex-wrap items-center justify-between gap-2 z-10" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-xs font-mono-code font-bold text-cyan-300">
+                  TUNER #${idx + 1}
+                </span>
+                <select onchange="changeQuadChannel(${idx}, this.value)" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-semibold text-white focus:outline-none">
+                  ${optionsHtml}
+                </select>
+              </div>
+              <button onclick="setQuadAudio(${idx})" class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
+                isAudioActive
+                  ? 'volt-accent-bg text-slate-950'
+                  : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+              }">
+                ${isAudioActive ? '🔊 ACTIVE AUDIO (5.1)' : '🔇 Click for Audio'}
+              </button>
+            </div>
+
+            <!-- Middle Broadcast Title -->
+            <div class="my-auto py-3 z-10">
+              <div class="text-xs font-mono-code text-emerald-400">${ch.rf} • ${ch.dbm} • ${ch.snr}</div>
+              <h3 class="text-base sm:text-lg font-extrabold text-white mt-0.5">${ch.program}</h3>
+              <p class="text-xs text-slate-300 line-clamp-1 mt-0.5">${ch.subtitle}</p>
+            </div>
+
+            <!-- Bottom Row: Equalizer & Fullscreen Promote -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 z-10" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-2">
+                <div class="flex items-end gap-0.5 h-3.5 w-5">
+                  <span class="w-1 bg-cyan-400 rounded-t ${isAudioActive ? 'eq-1' : 'h-1 opacity-30'}"></span>
+                  <span class="w-1 bg-cyan-400 rounded-t ${isAudioActive ? 'eq-2' : 'h-1 opacity-30'}"></span>
+                  <span class="w-1 bg-cyan-400 rounded-t ${isAudioActive ? 'eq-3' : 'h-1 opacity-30'}"></span>
+                </div>
+                <span class="text-[11px] font-mono-code text-slate-400">1080i • 18.2 Mbps Direct</span>
+              </div>
+              <button onclick="promoteQuadToMain(${idx})" class="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-cyan-300">
+                ⛶ Main Stage
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setQuadAudio(slotIdx) {
+      activeQuadAudioIndex = slotIdx;
+      const ch = CHANNELS.find(c => c.num === quadSlots[slotIdx]);
+      renderQuadView();
+      saveStateToStorage();
+      if (ch) {
+        showToast(`Routed live 5.1 audio to Tuner #${slotIdx + 1}: ${ch.num} ${ch.callsign}`, 'QUAD AUDIO');
+      }
+    }
+
+    function cycleQuadAudio() {
+      setQuadAudio((activeQuadAudioIndex + 1) % 4);
+    }
+
+    function changeQuadChannel(slotIdx, newChannelNum) {
+      quadSlots[slotIdx] = newChannelNum;
+      renderQuadView();
+      saveStateToStorage();
+      showToast(`Assigned ${newChannelNum} to Quad-View Tuner #${slotIdx + 1}`, 'QUAD');
+    }
+
+    function assignStageToQuad(slotIdx) {
+      quadSlots[slotIdx] = activeStageChannelNum;
+      switchTab('quad');
+      setQuadAudio(slotIdx);
+    }
+
+    function sendChannelToNextQuad(channelNum) {
+      quadSlots[activeQuadAudioIndex] = channelNum;
+      switchTab('quad');
+      renderQuadView();
+      showToast(`Loaded ${channelNum} into Quad-View Tuner #${activeQuadAudioIndex + 1}`, 'QUAD');
+    }
+
+    function promoteQuadToMain(slotIdx) {
+      const chNum = quadSlots[slotIdx];
+      tuneStageChannel(chNum, `LIVE TUNER #${slotIdx + 1}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function loadQuadPreset(preset) {
+      if (preset === 'sports') {
+        quadSlots = ['4.1', '5.1', '9.1', '11.1'];
+        showToast('Loaded Twin Cities Game Day Quad (WCCO 4.1, KSTP 5.1, FOX 9.1, KARE 11.1)', 'QUAD PRESET');
+      } else {
+        quadSlots = ['2.1', '4.1', '9.1', '11.1'];
+        showToast('Loaded Twin Cities Local News Quad Wall', 'QUAD PRESET');
+      }
+      renderQuadView();
+      saveStateToStorage();
+    }
+
+    // =========================================================================
+    // 5TB DVR LIBRARY
+    // =========================================================================
+    function renderDvrList() {
+      const list = document.getElementById('dvrRecordingsList');
+      if (!list) return;
+
+      list.innerHTML = DVR_RECORDINGS.map(rec => `
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-mono-code text-cyan-400 font-semibold">${rec.channel}</span>
+              ${rec.comSkipBlocks > 0
+                ? `<span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">⚡ ${rec.comSkipBlocks} Ad Blocks Indexed (-${rec.savedMinutes}m)</span>`
+                : `<span class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">No Commercials (PBS)</span>`
+              }
+            </div>
+            <h3 class="text-base font-bold text-white mt-1">${rec.title}</h3>
+            <p class="text-xs text-slate-400 mt-0.5">${rec.date}</p>
+          </div>
+          <div class="flex items-center justify-between pt-2.5 border-t border-slate-800">
+            <button onclick="playRecording('${rec.id}')" class="px-3.5 py-1.5 rounded-xl volt-accent-bg text-slate-950 font-bold text-xs hover:opacity-95 transition">
+              ▶ Play with Auto ComSkip
+            </button>
+            <button onclick="toggleProtectRecording('${rec.id}')" class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-semibold ${rec.protected ? 'text-amber-300' : 'text-slate-400'}">
+              ${rec.protected ? '🔒 Keep Forever' : '🔓 Auto-Expire'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function playRecording(recId) {
+      const rec = DVR_RECORDINGS.find(r => r.id === recId);
+      if (!rec) return;
+      document.getElementById('stageChannelNumber').textContent = 'DVR';
+      document.getElementById('stageChannelCallsign').textContent = rec.channel;
+      document.getElementById('stageStreamMode').textContent = '5TB SEAGATE PLAYBACK';
+      document.getElementById('stageProgramTitle').textContent = rec.title;
+      document.getElementById('stageProgramSub').textContent = `${rec.date} • Commercial-Skip Timeline Active`;
+      const comBanner = document.getElementById('comSkipAlertBanner');
+      if (comBanner) {
+        if (rec.comSkipBlocks > 0) comBanner.classList.remove('hidden');
+        else comBanner.classList.add('hidden');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast(`Playing "${rec.title}" from 5TB Seagate USB Drive`, '5TB DVR');
+    }
+
+    function toggleProtectRecording(recId) {
+      const rec = DVR_RECORDINGS.find(r => r.id === recId);
+      if (!rec) return;
+      rec.protected = !rec.protected;
+      renderDvrList();
+      showToast(`${rec.title} set to ${rec.protected ? 'Keep Forever' : 'Standard Auto-Expire'}`, 'DVR');
+    }
+
+    // =========================================================================
+    // FIRE TV DOWNLOADER SITE & PORT 8885 LOCAL API HUB
+    // =========================================================================
+    function setDownloaderMode(mode) {
+      const githubBtn = document.getElementById('modeBtnGithub');
+      const lanBtn = document.getElementById('modeBtnLan');
+      const hostInput = document.getElementById('downloaderHostInput');
+
+      if (mode === 'github') {
+        githubBtn.className = 'px-3 py-2 rounded-xl text-xs font-bold border border-cyan-500/60 bg-cyan-500/15 text-cyan-300 transition';
+        lanBtn.className = 'px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-950 text-slate-300 hover:text-white transition';
+        hostInput.value = 'https://github.com/jswens-mn/tablovolt-pro/releases/latest/download/TabloVoltPro.apk';
+        showToast('Switched to GitHub Releases + AFTVnews Shortcode mode', 'DOWNLOADER');
+      } else {
+        lanBtn.className = 'px-3 py-2 rounded-xl text-xs font-bold border border-cyan-500/60 bg-cyan-500/15 text-cyan-300 transition';
+        githubBtn.className = 'px-3 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-950 text-slate-300 hover:text-white transition';
+        hostInput.value = 'http://192.168.1.100:8080/TabloVoltPro.apk';
+        showToast('Switched to Windows 11 Local LAN HTTP Server (:8080) mode', 'DOWNLOADER');
+      }
+      updateDownloaderPreview();
+    }
+
+    function updateDownloaderPreview() {
+      const codeInput = document.getElementById('aftvShortcodeInput');
+      const preview = document.getElementById('shortcodeRedirectPreview');
+      const stepLabel = document.getElementById('stepShortcodeLabel');
+      const code = codeInput ? codeInput.value.trim() : '849204';
+      if (preview) preview.textContent = `go.aftvnews.com/${code}`;
+      if (stepLabel) stepLabel.textContent = code;
+    }
+
+    function simulateShortcodeCreation() {
+      const randomCode = String(Math.floor(100000 + Math.random() * 899999));
+      const codeInput = document.getElementById('aftvShortcodeInput');
+      if (codeInput) codeInput.value = randomCode;
+      updateDownloaderPreview();
+      showToast(`Synced Downloader shortcode ${randomCode} to target URL`, 'AFTV CODE');
+    }
+
+    function runOtaUpdateCheck() {
+      const msg = document.getElementById('otaStatusMessage');
+      if (msg) {
+        msg.textContent = 'Contacting Downloader release manifest (version.json)... Found v2.5.0-LEANBACK (SHA-256 verified).';
+      }
+      showToast('Checked Downloader site manifest: v2.5.0-LEANBACK is ready to install!', 'OTA CHECK');
+    }
+
+    function applyOtaUpdateNow() {
+      const instVer = document.getElementById('otaInstalledVer');
+      const remVer = document.getElementById('otaRemoteVer');
+      const badge = document.getElementById('appVersionBadge');
+      const dot = document.getElementById('updateDotBadge');
+      const btn = document.getElementById('btnApplyOtaUpdate');
+      const msg = document.getElementById('otaStatusMessage');
+
+      if (btn) {
+        btn.textContent = '✓ Up to Date (v2.5.0)';
+        btn.className = 'px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-xs shrink-0';
+      }
+      if (instVer) instVer.textContent = 'v2.5.0-LEANBACK';
+      if (remVer) {
+        remVer.textContent = 'v2.5.0-LEANBACK (Latest Installed)';
+        remVer.className = 'text-emerald-400 font-bold';
+      }
+      if (badge) badge.textContent = 'v2.5.0-LEANBACK';
+      if (dot) dot.classList.add('hidden');
+      if (msg) msg.textContent = 'In-place APK update completed! All household profiles, Shoreview channel locks, and Quad-View presets preserved.';
+      showToast('Updated TabloVolt Pro to v2.5.0-LEANBACK via Downloader manifest!', 'UPDATED');
+    }
+
+    function updateTabloHost() {
+      const ipInput = document.getElementById('tabloIpInput');
+      const headerHost = document.getElementById('headerApiHost');
+      if (ipInput && headerHost) {
+        headerHost.textContent = ipInput.value.trim() || '192.168.1.142:8885';
+      }
+    }
+
+    function probeTabloEndpoint(endpoint) {
+      const ipInput = document.getElementById('tabloIpInput');
+      const host = ipInput ? ipInput.value.trim() : '192.168.1.142:8885';
+      const out = document.getElementById('apiJsonOutput');
+      if (!out) return;
+
+      const payloads = {
+        '/server/info': {
+          endpoint: `http://${host}/server/info`,
+          server_id: 'SID_50879C2A4E11',
+          name: 'Tablo-4thGen-Quad',
+          model: 'TF1284B-01 (4-Tuner OTA)',
+          firmware: '2.2.54',
+          shoreview_rf_profile: {
+            internal_amplifier: false,
+            inline_lte_5g_filter: true,
+            channels_locked: 204
+          }
+        },
+        '/tuner/status': {
+          endpoint: `http://${host}/tuner/status`,
+          tuners: [
+            { tuner: 1, state: 'streaming', channel: quadSlots[0], snr_db: 31, lock: true },
+            { tuner: 2, state: 'streaming', channel: quadSlots[1], snr_db: 34, lock: true },
+            { tuner: 3, state: 'streaming', channel: quadSlots[2], snr_db: 34, lock: true },
+            { tuner: 4, state: 'streaming', channel: quadSlots[3], snr_db: 33, lock: true }
+          ]
+        },
+        '/guide/channels': {
+          endpoint: `http://${host}/guide/channels`,
+          epg_window_days: 14,
+          ota_channels: 68,
+          fast_streaming_channels: 136,
+          total_channels: 204,
+          primary_towers: 'Shoreview, MN (11.2 mi SSE)'
+        },
+        '/storage/usb': {
+          endpoint: `http://${host}/storage/usb`,
+          drive_model: 'Seagate Expansion 5TB USB 3.0',
+          filesystem: 'ext4',
+          capacity_tb: 5.0,
+          used_tb: 1.42,
+          free_tb: 3.58,
+          comskip_engine: 'ready'
+        }
+      };
+
+      out.textContent = JSON.stringify(payloads[endpoint] || payloads['/server/info'], null, 2);
+      showToast(`200 OK from http://${host}${endpoint}`, 'PORT 8885');
+    }
+
+    // =========================================================================
+    // CLIPBOARD HELPERS (SANDBOX SAFE)
+    // =========================================================================
+    function copyLiteralText(text, toastMsg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(toastMsg, 'COPIED');
+        }).catch(() => fallbackCopy(text, toastMsg));
+      } else {
+        fallbackCopy(text, toastMsg);
+      }
+    }
+
+    function copyTextFromElement(inputId, toastMsg) {
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      copyLiteralText(el.value, toastMsg);
+    }
+
+    function fallbackCopy(text, toastMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(toastMsg, 'COPIED');
+      } catch (e) {
+        showToast('Select and copy the text manually.', 'INFO');
+      }
+      ta.remove();
+    }
+
+    // =========================================================================
+    // ON-SCREEN FIRE TV REMOTE & D-PAD NAVIGATION
+    // =========================================================================
+    function toggleRemoteDrawer() {
+      const drawer = document.getElementById('fireRemoteDrawer');
+      if (!drawer) return;
+      drawer.classList.toggle('hidden');
+    }
+
+    function handleDpad(direction) {
+      const items = Array.from(document.querySelectorAll('.dpad-item')).filter(el => el.offsetParent !== null);
+      if (items.length === 0) return;
+
+      items.forEach(el => el.classList.remove('dpad-focused'));
+
+      if (direction === 'select') {
+        const target = items[dpadFocusIndex % items.length];
+        if (target) target.click();
+        return;
+      }
+
+      if (direction === 'right' || direction === 'down') {
+        dpadFocusIndex = (dpadFocusIndex + 1) % items.length;
+      } else if (direction === 'left' || direction === 'up') {
+        dpadFocusIndex = (dpadFocusIndex - 1 + items.length) % items.length;
+      }
+
+      const nextEl = items[dpadFocusIndex];
+      if (nextEl) {
+        nextEl.classList.add('dpad-focused');
+        nextEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    // Keyboard listener for 10-foot navigation & quick shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); handleDpad('right'); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); handleDpad('left'); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); handleDpad('down'); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); handleDpad('up'); }
+      else if (e.key === 'Enter') { e.preventDefault(); handleDpad('select'); }
+      else if (e.key === '1') { setQuadAudio(0); }
+      else if (e.key === '2') { setQuadAudio(1); }
+      else if (e.key === '3') { setQuadAudio(2); }
+      else if (e.key === '4') { setQuadAudio(3); }
+    });
+
+    // =========================================================================
+    // INITIALIZE APP ON LOAD
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStateFromStorage();
+      renderProfileModalCards();
+      renderGuideList();
+      renderQuadView();
+      renderDvrList();
+      tuneStageChannel('9.1');
+    });
+  </script>
+</body>
+</html>
